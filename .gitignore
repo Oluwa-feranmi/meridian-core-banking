@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment files — never commit real secrets. Only the .env.example /
+# .env.test.example templates are tracked.
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+# Test coverage reports
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Terraform (owned and .gitignored separately by you in infra/, listed
+# here too in case infra/ ever lives inside this same repo)
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example

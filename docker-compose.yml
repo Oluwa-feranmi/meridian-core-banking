@@ -1,0 +1,105 @@
+name: meridian-core-banking
+
+services:
+  # ---------------------------------------------------------------------
+  # PostgreSQL — this is what replaces "install Postgres on your laptop."
+  # A fresh, disposable database, isolated from anything else on your
+  # machine, with its own named volume so data survives `docker compose
+  # down` (but not `docker compose down -v`, which deletes the volume
+  # too — that's the "reset everything" command).
+  # ---------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: meridian-db
+    environment:
+      POSTGRES_DB: meridian
+      POSTGRES_USER: meridian_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_locally}
+    ports:
+      - '5432:5432'
+    volumes:
+      - meridian-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U meridian_app -d meridian']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------
+  # One-off job: applies db/migrations/*.sql then db/seeds/*.sql against
+  # the `db` service above. Not a long-running service — it runs once and
+  # exits. Placed in the "tools" profile so a plain `docker compose up`
+  # does NOT run it automatically (you don't want migrations silently
+  # re-attempted on every restart); you invoke it explicitly, see the
+  # commands below.
+  #
+  # Mounts the whole repo (not just backend/) because scripts/migrate.ts
+  # and scripts/seed.ts read SQL files from ../../db/migrations and
+  # ../../db/seeds relative to the backend/ folder — i.e. the project
+  # root's db/ directory, which lives outside the backend Docker build
+  # context on purpose (docs/02-infrastructure-guidance.md explains why
+  # application code and SQL migrations are kept as siblings, not nested).
+  # ---------------------------------------------------------------------
+  migrate:
+    image: node:20-alpine
+    container_name: meridian-migrate
+    profiles: ['tools']
+    working_dir: /workspace/backend
+    volumes:
+      - ./:/workspace
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: meridian
+      DB_USER: meridian_app
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_locally}
+      JWT_SECRET: ${JWT_SECRET:-dev_only_placeholder_secret_change_me_______}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm ci && npm run migrate && npm run seed"
+
+  # ---------------------------------------------------------------------
+  # Backend API
+  # ---------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meridian-backend
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      LOG_LEVEL: info
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: meridian
+      DB_USER: meridian_app
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_locally}
+      DB_SSL: 'false'
+      JWT_SECRET: ${JWT_SECRET:-dev_only_placeholder_secret_change_me_______}
+      JWT_EXPIRES_IN: 8h
+      CORS_ORIGIN: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------
+  # Frontend (nginx serving the built React app)
+  # ---------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:4000
+    container_name: meridian-frontend
+    ports:
+      - '5173:80'
+    depends_on:
+      - backend
+
+volumes:
+  meridian-db-data:
