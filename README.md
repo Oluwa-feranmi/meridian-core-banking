@@ -2,7 +2,7 @@
 
 **A cloud-native core banking REST API and operations console, built to demonstrate production-grade Cloud/Platform/DevOps/SRE engineering practices — entirely within AWS Free Tier limits.**
 
-![Architecture diagram](docs/assets/meridian_aws_infrastructure.png).
+>![Architecture diagram](docs/assets/meridian_aws_architecture.png).
 
 > 📸 **Screenshots placeholder** — add screenshots of the console (dashboard, customer search, account detail with the transaction ledger) to `docs/assets/` once deployed, e.g. `docs/assets/screenshot-dashboard.png`.
 
