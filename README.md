@@ -2,7 +2,7 @@
 
 **A cloud-native core banking REST API and operations console, built to demonstrate production-grade Cloud/Platform/DevOps/SRE engineering practices — entirely within AWS Free Tier limits.**
 
-> 🖼️ **Architecture diagram placeholder** — add an exported diagram (e.g. from the ASCII version in `docs/01-project-overview.md`, or a tool like Lucidchart/draw.io) to `docs/assets/architecture-diagram.png` and reference it here once available.
+> ![Architecture diagram](docs/assets/architecture-diagram.png).
 
 > 📸 **Screenshots placeholder** — add screenshots of the console (dashboard, customer search, account detail with the transaction ledger) to `docs/assets/` once deployed, e.g. `docs/assets/screenshot-dashboard.png`.
 
