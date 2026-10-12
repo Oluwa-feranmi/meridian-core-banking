@@ -33,9 +33,8 @@ meaningful AWS bill. That constraint shaped real architectural decisions
 (ECS **Fargate** over EKS, **no NAT Gateway**, **Parameter Store** over
 Secrets Manager) — each one explained, with the actual cost numbers, in
 [`docs/02-infrastructure-guidance.md`](docs/02-infrastructure-guidance.md).
-All Terraform for the infrastructure described there is written and owned
-separately — this repository is the application, not the infrastructure
-code.
+All Terraform for the infrastructure described there is in the `infra/`
+directory — the application code lives here, infrastructure lives there.
 
 ## Technology stack
 
@@ -50,7 +49,7 @@ code.
 | Testing | Jest, Supertest | See [docs/04-testing-guide.md](docs/04-testing-guide.md) |
 | Compute | ECS Fargate | No cluster control-plane fee, pay-per-second — see [docs/02](docs/02-infrastructure-guidance.md) |
 | CI | GitHub Actions (strategy documented, not yet generated) | See [docs/05-cicd-strategy.md](docs/05-cicd-strategy.md) |
-| Infrastructure | Terraform (owned separately, not in this repo) | AWS Free Tier–first, see [docs/02](docs/02-infrastructure-guidance.md) |
+| Infrastructure as Code | Terraform | AWS Free Tier–first, see [`infra/`](infra/) and [docs/02](docs/02-infrastructure-guidance.md) |
 
 ## Project structure
 
@@ -61,6 +60,14 @@ meridian-core-banking/
 │   ├── 02-infrastructure-guidance.md  AWS resource-by-resource rationale and cost breakdown
 │   ├── 04-testing-guide.md            Test tiers, setup, how to run each
 │   └── 05-cicd-strategy.md            Pipeline stage design and reasoning
+│
+├── infra/                         AWS infrastructure as Terraform code (separate from app)
+│   ├── *.tf                           VPC, RDS, ECS, ALB, IAM, security groups, etc.
+│   ├── terraform.tfvars               Your AWS configuration (DO NOT commit)
+│   ├── outputs.tf                     Terraform outputs for CI/CD integration
+│   ├── README.md                      Deployment and operations guide
+│   └── scripts/
+│       └── run-migration.sh           One-off ECS task runner for database migrations
 │
 ├── db/
 │   ├── migrations/                001_create_schema.sql, 002_functions_and_triggers.sql
@@ -76,12 +83,15 @@ meridian-core-banking/
 │   │   ├── utils/                  AppError, structured logger, pure money math, account numbers
 │   │   ├── app.ts                  Express app assembly (middleware stack, route mounting)
 │   │   └── server.ts               Process entrypoint, graceful shutdown
-│   ├── scripts/                    migrate.ts, seed.ts — run db/migrations and db/seeds
+│   ├── scripts/
+│   │   ├── migrate.js                 Applies db/migrations in order, tracks applied migrations
+│   │   └── seed.js                    Applies db/seeds (idempotent, runs every time)
 │   ├── tests/
 │   │   ├── unit/                    No database required
 │   │   ├── integration/             Repository/service tests against a real Postgres
 │   │   └── api/                     Full HTTP-layer tests via Supertest
 │   ├── Dockerfile                  Multi-stage: compile TS → minimal production image
+│   ├── Dockerfile.aws              AWS variant: builds from project root, includes db/ folder
 │   └── package.json
 │
 ├── frontend/                      Operations console (React + TypeScript + Vite)
@@ -98,6 +108,7 @@ meridian-core-banking/
 │
 ├── docker-compose.yml              Wires db + migrate (one-off) + backend + frontend together
 ├── .env.example                    Variables docker-compose itself reads
+├── .gitignore                      Excludes .env, node_modules, terraform.tfvars, etc.
 └── README.md                       This file
 ```
 
@@ -126,6 +137,34 @@ above covers the common path; Dockerfile/compose design rationale lives
 inline as comments in `docker-compose.yml`, `backend/Dockerfile`, and
 `frontend/Dockerfile`.
 
+## AWS Deployment
+
+To deploy to AWS using Terraform and ECS:
+
+1. **Configure Terraform variables:**
+   ```bash
+   cd infra
+   cp terraform.tfvars.example terraform.tfvars
+   # edit terraform.tfvars with your AWS region, VPC CIDR, DB password, JWT secret
+   ```
+
+2. **Deploy infrastructure:**
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+3. **Build and push Docker images, then run migrations:**
+   See [`infra/README.md`](infra/README.md) for full step-by-step instructions.
+
+**Key architectural decisions:**
+- **RDS in private subnet** — secure (not internet-facing), cheaper (no NAT Gateway), requires one-off Fargate task for migrations
+- **Migrations via ECS** — `bash infra/scripts/run-migration.sh` launches a temporary task to apply schema and seeds
+- **Fargate (not EKS)** — no Kubernetes control-plane fee, pay-per-second, good for small deployments
+- **No NAT Gateway** — saves ~$30/month, acceptable for a demo project
+- Full cost breakdown and rationale: [`docs/02-infrastructure-guidance.md`](docs/02-infrastructure-guidance.md)
+
 ## Testing
 
 ```bash
@@ -146,7 +185,7 @@ succeed. Details and rationale: [`docs/04-testing-guide.md`](docs/04-testing-gui
 ## Monitoring overview
 
 Monitoring is one of this project's primary objectives, implemented at
-the infrastructure layer (owned in your separate Terraform project) rather
+the infrastructure layer (owned in [`infra/`](infra/)) rather
 than in application code beyond structured logging and the `/health/live`
 and `/health/ready` endpoints this API exposes for the ALB and container
 health checks to use. Planned CloudWatch dashboards cover CPU/memory,
