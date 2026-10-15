@@ -18,10 +18,13 @@
 
 ### Running on AWS
 
-![VPC resource map showing public and private subnets, route tables and internet gateway](docs/assets/10-aws-vpc-resource-map.png)
+![VPC resource map showing public and private subnets, route tables and internet gateway](docs/assets/07-aws-vpc-resource-map.png)
 *VPC resource map: public and private subnets, route tables, internet gateway.*
 
-![ALB target groups with healthy frontend and backend targets](docs/assets/14-aws-target-groups-healthy.png)
+![ALB target groups with healthy frontend targets](docs/assets/12-aws-target-groups-healthy.png)
+
+![ALB target groups with healthy backend targets](docs/assets/13-aws-target-groups-healthy.png)
+
 *Both ALB target groups reporting healthy ECS tasks.*
 
 ---
@@ -197,7 +200,7 @@ Dockerfile and compose design rationale lives inline as comments in
    terraform destroy
    ```
 
-![terraform destroy completing successfully](docs/assets/32-terraform-destroy-success.png)
+![terraform destroy completing successfully](docs/assets/20-terraform-destroy.png)
 *Clean teardown: nothing is left running or billing after `terraform destroy`.*
 
 **Key architectural decisions:**
@@ -225,7 +228,7 @@ simultaneous withdrawals at the same account and proves the database's
 row-level locking allows exactly one to succeed. Details and rationale:
 [`docs/04-testing-guide.md`](docs/04-testing-guide.md).
 
-![Backend test suite passing](docs/assets/33-local-test-suite-passing.png)
+![Terraform apply output](docs/assets/19-terraform-apply-output.png)
 
 ## Monitoring overview
 
@@ -236,13 +239,13 @@ Observability is built into both the application and the infrastructure (`infra/
 - **CloudWatch alarms**, all notifying an SNS email topic: backend 5xx errors, backend CPU, backend memory, RDS connection count, and failed transactions (a custom metric derived from `INSUFFICIENT_FUNDS` log lines using a log metric filter).
 - **ECS Container Insights** is enabled on the cluster for container-level metrics.
 
-![CloudWatch alarms in OK state](docs/assets/20-cloudwatch-alarms-ok.png)
+![CloudWatch alarms in OK state](docs/assets/15-aws-cloudwatch-alarms.png)
 *All alarms evaluating and in the OK state.*
 
-![Structured JSON logs from the backend in CloudWatch Logs](docs/assets/23-cloudwatch-backend-log-stream.png)
+![Structured JSON logs from the backend in CloudWatch Logs](docs/assets/16-aws-cloudwatch-cpu-metric.png)
 *Structured backend logs in CloudWatch Logs.*
 
-![Custom failed-transaction metric derived from logs](docs/assets/24-cloudwatch-failed-transaction-metric.png)
+![Custom failed-transaction metric derived from logs](docs/assets/17-aws-failed-transaction-metric.png)
 *The custom failed-transactions metric, fed by deliberate insufficient-funds attempts.*
 
 ## Security notes
