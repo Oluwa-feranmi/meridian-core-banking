@@ -18,12 +18,12 @@
 
 ### Running on AWS
 
-![VPC resource map showing public and private subnets, route tables and internet gateway](docs/assets/07-aws-vpc-resource-map.png)
+![VPC resource map showing public and private subnets, route tables and internet gateway](docs/assets/07-vpc-resource-map.png)
 *VPC resource map: public and private subnets, route tables, internet gateway.*
 
-![ALB target groups with healthy frontend targets](docs/assets/12-aws-target-groups-healthy.png)
+![ALB target groups with healthy frontend targets](docs/assets/13-aws-frontend-target-group.png)
 
-![ALB target groups with healthy backend targets](docs/assets/13-aws-target-groups-healthy.png)
+![ALB target groups with healthy backend targets](docs/assets/12-aws-backend-target-group.png)
 
 *Both ALB target groups reporting healthy ECS tasks.*
 
